@@ -8,7 +8,9 @@
 修改：
 1. 输出的特征向量维度需要一致：
     将图片按照图片自身的大小进行分割
-2. 使用sklear去分割数据
+2. 使用sklearn去分割数据
+3. 使用csv保存图片的特征向量：
+    permisiion denied: 写入时打开了对应的文件
 
 """
 
@@ -17,6 +19,7 @@ from skimage import io, color, filters, feature
 import matplotlib.pyplot as plt
 import os
 import csv
+import time
 from sklearn import svm, multiclass, model_selection
 
 
@@ -84,10 +87,10 @@ def LBP_Data(path, sigma,radius,split):
     filelabellist = getFileLabelList(path)  #获得每个文件夹的名称，每个文件夹的名称也就对应了其所属的类别
     # i = 1   #每5个数据采集一个测试样本
     for cur_file in filelabellist:
-        cur_path = path+cur_file
+        cur_path = path+cur_file+'/'
         for cur_jpg in os.listdir(cur_path):
             if 'jpg' in cur_jpg:
-                cur_jpg_path = cur_path+'/'+cur_jpg
+                cur_jpg_path = cur_path+cur_jpg
                 cur_lbp_vector = getLBP_Vector(cur_jpg_path,sigma,radius,split)
                 # if i%5==0:  #计数到5，采集一个测试样本
                 #     data_test.append(cur_lbp_vector)
@@ -97,18 +100,31 @@ def LBP_Data(path, sigma,radius,split):
                 label_training.append([cur_file,cur_jpg])
             else:
                 continue
-    csvWrite(path+'data_training',data_training)
-    csvWrite(path+'label_training',label_training)
+    csvWrite('./result/data_training.csv',data_training)
+    csvWrite('./result/label_training.csv',label_training)
 
 # 使用csv写入文件
 # 输入：文件名:dataname, 列表数据:datalist
 # 输出：在指定位置处写入指定姓名的文件
 def csvWrite(dataname,datalist):
-    f = open(dataname,'w',encoding='utf-8',newline=' ')
+    f = open(dataname,'w',encoding='utf-8',newline='') #设置newline=''，不会产生空行
     csv_writer = csv.writer(f)
-    for cur_data in datalist:
+    for cur_data in datalist:   #datalist应为二维数组
         csv_writer.writerow(cur_data)
     f.close()
+    print('写出'+dataname+'成功')
+
+# 将标签字符串文件转换为数字文件
+
+# 使用sklearn进行支持向量机的学习
 
 if __name__ == '__main__':
-    print('dd')
+    starttime = time.time()
+    path = './temp/'
+    sigma = 0.8
+    radius = 3
+    split = 2
+    # LBP_Data(path,sigma,radius,split)
+    endtime = time.time()
+    dtime = endtime-starttime
+    print("程序运行时间:%.8s秒" %dtime)
