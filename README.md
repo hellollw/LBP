@@ -1,5 +1,6 @@
 # LBP
 Using scikit_image and sklearn implement texture recognition
+
 使用scikit_image：
     1. 对图片进行高斯滤波
     2. 对图片进行LBP特征提取，获得全局LBP特征向量进行分类

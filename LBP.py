@@ -11,6 +11,7 @@
 2. 使用sklearn去分割数据
 3. 使用csv保存图片的特征向量：
     permisiion denied: 写入时打开了对应的文件
+4. csv读取的为字符型数据，在放入sklearn中学习前应转换为浮点型(将二维list的数据转换为浮点型）
 
 """
 
@@ -78,45 +79,111 @@ def getLBP_Vector(path, sigma, radius, split):
     return lbp_vector
 
 
-# 训练所有图像的LBP，获得训练样本和测试样本数据集和的标签集和
+# 训练所有图像的LBP，获得训练样本和测试样本数据集和的标签集和,并将其保存在result中
 # 输入：样本图片文件所在路径:path, 高斯滤波稀疏:sigma, 采样半径:radius, 图像分块数量:split
 # 返回：样本数据集:data_training,样本标签:label_training（后可用sklearn中的model_selection.train_test_split方法来分割数据）
-def LBP_Data(path, sigma,radius,split):
+def trainLBP_Data(path, sigma, radius, split):
     data_training = []
     label_training = []
-    filelabellist = getFileLabelList(path)  #获得每个文件夹的名称，每个文件夹的名称也就对应了其所属的类别
+    filelabellist = getFileLabelList(path)  # 获得每个文件夹的名称，每个文件夹的名称也就对应了其所属的类别
     # i = 1   #每5个数据采集一个测试样本
     for cur_file in filelabellist:
-        cur_path = path+cur_file+'/'
+        cur_path = path + cur_file + '/'
         for cur_jpg in os.listdir(cur_path):
             if 'jpg' in cur_jpg:
-                cur_jpg_path = cur_path+cur_jpg
-                cur_lbp_vector = getLBP_Vector(cur_jpg_path,sigma,radius,split)
+                cur_jpg_path = cur_path + cur_jpg
+                cur_lbp_vector = getLBP_Vector(cur_jpg_path, sigma, radius, split)
                 # if i%5==0:  #计数到5，采集一个测试样本
                 #     data_test.append(cur_lbp_vector)
                 #     label_test.append([cur_file,cur_jpg]) #文件夹名称同时为样本类别
                 # else :  #采集训练样本
                 data_training.append(cur_lbp_vector)
-                label_training.append([cur_file,cur_jpg])
+                label_training.append([cur_file, cur_jpg])
             else:
                 continue
-    csvWrite('./result/data_training.csv',data_training)
-    csvWrite('./result/label_training.csv',label_training)
+    csvWrite('./result/data_training.csv', data_training)
+    csvWrite('./result/label_training.csv', label_training)
+
 
 # 使用csv写入文件
 # 输入：文件名:dataname, 列表数据:datalist
 # 输出：在指定位置处写入指定姓名的文件
-def csvWrite(dataname,datalist):
-    f = open(dataname,'w',encoding='utf-8',newline='') #设置newline=''，不会产生空行
+def csvWrite(dataname, datalist):
+    f = open(dataname, 'w', encoding='utf-8', newline='')  # 设置newline=''，不会产生空行
     csv_writer = csv.writer(f)
-    for cur_data in datalist:   #datalist应为二维数组
+    for cur_data in datalist:  # datalist应为二维数组
         csv_writer.writerow(cur_data)
     f.close()
-    print('写出'+dataname+'成功')
+    print('写出' + dataname + '成功')
 
-# 将标签字符串文件转换为数字文件
 
-# 使用sklearn进行支持向量机的学习
+# 将标签字符串文件转换为数字文件(符合sklearn的要求）
+# 输入：字符串样本集和labelstring
+# 输出：转换为对应的数字labelint, 集和种类：labelnum
+def string2int(labelstring):
+    Wholelabel = []
+    labelint = []
+    for label in labelstring:
+        if label not in Wholelabel:
+            Wholelabel.append(label)
+        else:
+            continue
+
+    for cur_label in labelstring:
+        label_index = Wholelabel.index(cur_label)
+        labelint.append(label_index)  # 转换为对应的种类数字
+
+    return labelint, len(Wholelabel)
+
+
+# 将二维字符串型数组转换为浮点型
+# 输入：二维字符串数组:datastr
+# 输出：浮点数组:datafloat
+def str2float(datastr):
+    m, n = np.shape(datastr)
+    datafloat = np.zeros((m, n))
+    for i in range(m):
+        for j in range(n):
+            datafloat[i][j] = float(datastr[i][j])  # 数组遍历实现转换
+    return datafloat
+
+
+# 使用sklearn进行支持向量机的学习和测试
+# 输入：数据集路径:path,内核选取：kernal, 惩罚系数:C，核函数系数:gamma
+# 输出：错误率:wrongrate
+def sklearnPLB(path, kernal, C, gamma):
+    # 先读取CSV文件
+    sampledatastr = []
+    samplelabelstr = []
+    # 读取训练数据集数据
+    f = open(path + 'data_training.csv', 'r')
+    csv_read = csv.reader(f)
+    for i in csv_read:
+        sampledatastr.append(i)
+    f.close()
+    # 读取训练数据集样本数据
+    f2 = open(path + 'label_training.csv', 'r')
+    csv_read2 = csv.reader(f2)
+    for j in csv_read2:
+        samplelabelstr.append(j[0])  # 选择第一项写入样本序列中
+    f2.close()
+    # 将样本集转换为数字,将数据集转换为浮点型
+    samplelabel, class_num = string2int(samplelabelstr)
+    sampledataf = str2float(sampledatastr)
+    # 样本集分割
+    X_train, X_test, y_train, y_test = model_selection.train_test_split(sampledataf, samplelabel, test_size=0.2,
+                                                                        random_state=0)  # 划分训练集和测试集，将输入的列表分离(
+    # 选取1/5的数据作为测试集)
+    # 构建训练内核
+    svc_rbf = svm.SVC(C=C, kernel=kernal, gamma=gamma)
+    # 构建多分类器
+    model = multiclass.OneVsOneClassifier(svc_rbf, -1)  # n-jobs, -1代表利用所有的cpu资源
+    # 进行训练
+    clf = model.fit(X_train, y_train)
+    wrongrate = clf.score(X_test, y_test)
+    print(wrongrate)
+    return wrongrate, class_num
+
 
 if __name__ == '__main__':
     starttime = time.time()
@@ -124,7 +191,8 @@ if __name__ == '__main__':
     sigma = 0.8
     radius = 3
     split = 2
-    # LBP_Data(path,sigma,radius,split)
+    # LBP_Data(path, sigma, radius, split)
+    sklearnPLB('./result/', kernal='rbf', C=5, gamma=0.5)
     endtime = time.time()
-    dtime = endtime-starttime
-    print("程序运行时间:%.8s秒" %dtime)
+    dtime = endtime - starttime
+    print("程序运行时间:%.8s秒" % dtime)
