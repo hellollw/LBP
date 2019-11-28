@@ -11,3 +11,8 @@ Using scikit_image and sklearn implement texture recognition
     3. 使用multiclass进行多分类
 
 这些库真香！
+
+文件分布：
+    model保存训练的模型数据
+    result保存LBP特征分类的结果
+    temp保存用来测试的例程

@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # Author: Lu Liwen
-# Modified Time: 2019-11-27
+# Modified Time: 2019-11-28
 
 """
 使用scikit_image实现图片的LBP特征提取(Local Binary Pattern,局部二值模式)
@@ -12,6 +12,7 @@
 3. 使用csv保存图片的特征向量：
     permisiion denied: 写入时打开了对应的文件
 4. csv读取的为字符型数据，在放入sklearn中学习前应转换为浮点型(将二维list的数据转换为浮点型）
+5. 将训练得到的模板进行保存(导入pickle模块进行保存）
 
 """
 
@@ -22,6 +23,7 @@ import os
 import csv
 import time
 from sklearn import svm, multiclass, model_selection
+import joblib as job
 
 
 # 获得文件夹标签索引
@@ -180,6 +182,7 @@ def sklearnPLB(path, kernal, C, gamma):
     model = multiclass.OneVsOneClassifier(svc_rbf, -1)  # n-jobs, -1代表利用所有的cpu资源
     # 进行训练
     clf = model.fit(X_train, y_train)
+    job.dump(clf,'./model/train_model.m')   #将模板进行保存
     wrongrate = clf.score(X_test, y_test)
     print(wrongrate)
     return wrongrate, class_num
