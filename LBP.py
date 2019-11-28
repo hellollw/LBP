@@ -5,8 +5,10 @@
 """
 使用scikit_image实现图片的LBP特征提取(Local Binary Pattern,局部二值模式)
 
-输出的特征向量维度需要一致：
+修改：
+1. 输出的特征向量维度需要一致：
     将图片按照图片自身的大小进行分割
+2. 使用sklear去分割数据
 
 """
 
@@ -15,6 +17,7 @@ from skimage import io, color, filters, feature
 import matplotlib.pyplot as plt
 import os
 import csv
+from sklearn import svm, multiclass, model_selection
 
 
 # 获得文件夹标签索引
@@ -74,32 +77,28 @@ def getLBP_Vector(path, sigma, radius, split):
 
 # 训练所有图像的LBP，获得训练样本和测试样本数据集和的标签集和
 # 输入：样本图片文件所在路径:path, 高斯滤波稀疏:sigma, 采样半径:radius, 图像分块数量:split
-# 返回：训练样本数据集:data_training,训练样本标签:label_training,测试样本数据集:data_test,测试样本集和：label_test
+# 返回：样本数据集:data_training,样本标签:label_training（后可用sklearn中的model_selection.train_test_split方法来分割数据）
 def LBP_Data(path, sigma,radius,split):
     data_training = []
     label_training = []
-    data_test = []
-    label_test = []
     filelabellist = getFileLabelList(path)  #获得每个文件夹的名称，每个文件夹的名称也就对应了其所属的类别
-    i = 1   #每5个数据采集一个测试样本
+    # i = 1   #每5个数据采集一个测试样本
     for cur_file in filelabellist:
         cur_path = path+cur_file
         for cur_jpg in os.listdir(cur_path):
             if 'jpg' in cur_jpg:
                 cur_jpg_path = cur_path+'/'+cur_jpg
                 cur_lbp_vector = getLBP_Vector(cur_jpg_path,sigma,radius,split)
-                if i%5==0:  #计数到5，采集一个测试样本
-                    data_test.append(cur_lbp_vector)
-                    label_test.append([cur_file,cur_jpg]) #文件夹名称同时为样本类别
-                else :  #采集训练样本
-                    data_training.append(cur_lbp_vector)
-                    label_training.append([cur_file,cur_jpg])
+                # if i%5==0:  #计数到5，采集一个测试样本
+                #     data_test.append(cur_lbp_vector)
+                #     label_test.append([cur_file,cur_jpg]) #文件夹名称同时为样本类别
+                # else :  #采集训练样本
+                data_training.append(cur_lbp_vector)
+                label_training.append([cur_file,cur_jpg])
             else:
                 continue
     csvWrite(path+'data_training',data_training)
     csvWrite(path+'label_training',label_training)
-    csvWrite(path + 'data_test', data_test)
-    csvWrite(path + 'label_test', label_test)
 
 # 使用csv写入文件
 # 输入：文件名:dataname, 列表数据:datalist

@@ -140,15 +140,14 @@ for i in range(0, 1000):
                 #
  
         Data.append(lbp_sum)
-<br>#使用SVM进行训练并计算测试准确率
+# 使用SVM进行训练并计算测试准确率
+
 label1, _ = label2number(label_1[0:1000])
-X_train,X_test, y_train, y_test = model_selection.train_test_split(Data,label1,test_size=0.2, random_state=0)
-# train_data = Data[0:7]
-# train_label = label1[0:7]
-# test_data = Data[8:9]
-# test_label = label1[8:9]
-svr_rbf = svm.SVR(kernel='rbf', C=1e3, gamma=0.1);
-model = multiclass .OneVsRestClassifier(svr_rbf,-1)  #.fit(train_data, train_label).score(test_data,test_label)
+#制作训练集和样本集
+X_train,X_test, y_train, y_test = model_selection.train_test_split(Data,label1,test_size=0.2, random_state=0) #程序帮忙划分训练集和测试集，将输入的列表分离
+
+svr_rbf = svm.SVR(kernel='rbf', C=1e3, gamma=0.1);  #选用高斯内核，这里进行SVM回归训练，gamma为核函数系数，C为惩罚系数
+model = multiclass .OneVsRestClassifier(svr_rbf,-1)  #n-jobs, -1代表利用所有的cpu资源
 clf = model.fit(X_train, y_train)
-sore=clf.score(X_test, y_test)
+sore=clf.score(X_test, y_test)  #获得训练误差
 print('acc'+str(sore))
