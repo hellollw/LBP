@@ -1,0 +1,13 @@
+
+C:5.000000 gamma:0.600000
+Result: Accuracy:0.164894, class_num:47.000000, RunTime:402.4954
+C:5.000000 gamma:0.600000
+Result: Accuracy:0.228723, class_num:47.000000, RunTime:127.2286
+C:50.000000 gamma:0.600000
+Result: Accuracy:0.639184, class_num:47.000000, RunTime:112.7348
+C:150.000000 gamma:0.600000
+Result: Accuracy:0.859043, class_num:47.000000, RunTime:108.1114
+C:150.000000 gamma:0.600000
+Result: Accuracy:0.256206, class_num:47.000000, RunTime:314.6590
+C:150.000000 gamma:1.200000
+Result: Accuracy:0.255319, class_num:47.000000, RunTime:312.8577

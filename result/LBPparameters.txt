@@ -1,0 +1,2 @@
+sigma:0.800000 radius:8.000000 split:7.000000sigma:0.800000 radius:8.000000 split:3.000000 character_num:594
+sigma:0.800000 radius:8.000000 split:4.000000 character_num:1056

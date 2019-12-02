@@ -1,9 +1,17 @@
 # -*- coding:utf-8 -*-
 # Author: Lu Liwen
-# Modified Time: 2019-12-01
+# Modified Time: 2019-12-02
 
 """
 使用scikit_image实现图片的LBP特征提取(Local Binary Pattern,局部二值模式)
+
+样本总数:5640
+test集比率:0.2
+
+split: 7*7——>3234维特征向量
+        3*3——>594（欠拟合）
+        4*4——>1056(欠拟合）
+
 
 修改：
 1. 输出的特征向量维度需要一致：
@@ -15,6 +23,7 @@
 5. 将训练得到的模板进行保存(导入pickle模块进行保存）
 6. 将参数和结果也进行文件形式保存
 7. 修改分类器评估指标（以普通accuracy为指标)——因为在这个多分类问题中每个类别所占权重一致
+8. **单次读入的数据容量过大，列表维度产生错误**
 
 """
 
@@ -42,7 +51,7 @@ def getFileLabelList(path):
 
 # 使用scikit_image包提取图片的LBP全局特征向量
 # 输入：图片路径:path, 高斯滤波稀疏:sigma, 采样半径:radius, 图像分块数量:split(split*split)
-# 输出：图片的LBP全局特征向量（列表形式):lbq_vector
+# 输出：图片的LBP全局特征向量（列表形式):lbq_vector，特征数量
 def getLBP_Vector(path, sigma, radius, split):
     """
 
@@ -50,7 +59,7 @@ def getLBP_Vector(path, sigma, radius, split):
     :param sigma: 高斯滤波稀疏
     :param radius: 采样半径
     :param split: 图像分块数量
-    :return: 图片的LBP全局特征向量（列表形式):lbq_vector
+    :return: 图片的LBP全局特征向量（列表形式):lbq_vector,图片的特征数量
     """
     pic = io.imread(path)
     pic_gauss = filters.gaussian(pic, sigma=sigma, multichannel=True)  # 高斯滤波消除噪声，默认为多通道（RGB图像）
@@ -79,7 +88,7 @@ def getLBP_Vector(path, sigma, radius, split):
             cur_hist, cur_bins = np.histogram(cur_lbpmat, bins=max_bins, range=(0, max_bins))
             cur_hist = cur_hist / number  # 归一化转换为概率分布
             lbp_vector.extend(cur_hist.tolist())
-    return lbp_vector
+    return lbp_vector,np.shape(lbp_vector)[0]
 
 
 # 训练所有图像的LBP，获得训练样本和测试样本数据集和的标签集和,并将其保存在result中
@@ -96,6 +105,7 @@ def trainLBP_Data(path, sigma, radius, split):
     """
     data_training = []
     label_training = []
+    character_num = 0
     filelabellist = getFileLabelList(path)  # 获得每个文件夹的名称，每个文件夹的名称也就对应了其所属的类别
     # i = 1   #每5个数据采集一个测试样本
     for cur_file in filelabellist:
@@ -103,7 +113,7 @@ def trainLBP_Data(path, sigma, radius, split):
         for cur_jpg in os.listdir(cur_path):
             if 'jpg' in cur_jpg:
                 cur_jpg_path = cur_path + cur_jpg
-                cur_lbp_vector = getLBP_Vector(cur_jpg_path, sigma, radius, split)
+                cur_lbp_vector,character_num = getLBP_Vector(cur_jpg_path, sigma, radius, split)
                 # if i%5==0:  #计数到5，采集一个测试样本
                 #     data_test.append(cur_lbp_vector)
                 #     label_test.append([cur_file,cur_jpg]) #文件夹名称同时为样本类别
@@ -113,10 +123,10 @@ def trainLBP_Data(path, sigma, radius, split):
             else:
                 continue
         print('文件夹'+cur_file+'处理完毕')
-    csvWrite('./result/data_training.csv', data_training)
-    csvWrite('./result/label_training.csv', label_training)
+    csvWrite('./result/data_training4x4.csv', data_training)
+    csvWrite('./result/label_training4x4.csv', label_training)
     f = open('./result/LBPparameters.txt','a+')    #连续写入
-    f.write('sigma:%f radius:%f split:%f' %(sigma,radius,split)+'\r\n')
+    f.write('sigma:%f radius:%f split:%f character_num:%d' %(sigma,radius,split,character_num)+'\r\n')
     f.close()
 
 
@@ -136,6 +146,7 @@ def csvWrite(dataname, datalist):
 # 输入：字符串样本集和labelstring
 # 输出：转换为对应的数字labelint, 集和种类：labelnum
 def string2int(labelstring):
+    print(np.shape(labelstring))
     Wholelabel = []
     labelint = []
     for label in labelstring:
@@ -155,6 +166,7 @@ def string2int(labelstring):
 # 输入：二维字符串数组:datastr
 # 输出：浮点数组:datafloat
 def str2float(datastr):
+    print(np.shape(datastr))
     m, n = np.shape(datastr)
     datafloat = np.zeros((m, n))
     for i in range(m):
@@ -178,29 +190,40 @@ def sklearnPLB(path, kernal, C, gamma):
     sampledatastr = []
     samplelabelstr = []
     # 读取训练数据集数据
-    f = open(path + 'data_training.csv', 'r')
+    f = open(path + 'data_training4x4.csv', 'r')
     csv_read = csv.reader(f)
+    # numi = 0
     for i in csv_read:
         sampledatastr.append(i)
+        # numi+=1
+        # if numi>300:   #测试是否是因为列表过大
+        #     break
     f.close()
     # 读取训练数据集样本数据
-    f2 = open(path + 'label_training.csv', 'r')
+    f2 = open(path + 'label_training4x4.csv', 'r')
     csv_read2 = csv.reader(f2)
+    # numj = 0
     for j in csv_read2:
         samplelabelstr.append(j[0])  # 选择第一项写入样本序列中
+        # numj+=1
+        # if numj>300:
+        #     break
     f2.close()
     # 将样本集转换为数字,将数据集转换为浮点型
     samplelabel, class_num = string2int(samplelabelstr)
     sampledataf = str2float(sampledatastr)
+    print('数据读取完成')
     # 样本集分割
     X_train, X_test, y_train, y_test = model_selection.train_test_split(sampledataf, samplelabel, test_size=0.2,
                                                                         random_state=0)  # 划分训练集和测试集，将输入的列表分离(
     # 选取1/5的数据作为测试集)
+    print('训练集分类完成')
     # 构建训练内核
     svc_rbf = svm.SVC(C=C, kernel=kernal, gamma=gamma)
     # 构建多分类器
     model = multiclass.OneVsOneClassifier(svc_rbf, -1)  # n-jobs, -1代表利用所有的cpu资源
     # 进行训练
+    print('进入训练')
     clf = model.fit(X_train, y_train)
     job.dump(clf,'./model/train_model.m')   #将模板进行保存
     accuracy = clf.score(X_test, y_test)
@@ -211,13 +234,14 @@ def sklearnPLB(path, kernal, C, gamma):
 if __name__ == '__main__':
     starttime = time.time()
     # 定义LBP特征参数
-    path = 'D:/MachineLearning_DataSet/DTD_DescrubableTextures/dtd/images/'
+    path = 'D:/MachineLearning_DataSet/DTD_DescrubableTextures/dtd/images/' #训练集路径
+    # path = './temp/'
     sigma = 0.8
     radius = 8
-    split = 7
+    split = 4
     # 定义SVM特征参数
-    C = 5
-    gamma = 0.5 #RBF系数
+    C = 150
+    gamma = 1.2 #RBF系数
     # trainLBP_Data(path, sigma, radius, split)
     accuracy,class_num = sklearnPLB('./result/', kernal='rbf', C=C, gamma=gamma)
     endtime = time.time()
