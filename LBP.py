@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # Author: Lu Liwen
-# Modified Time: 2019-12-02
+# Modified Time: 2019-12-03
 
 """
 使用scikit_image实现图片的LBP特征提取(Local Binary Pattern,局部二值模式)
@@ -23,7 +23,8 @@ split: 7*7——>3234维特征向量
 5. 将训练得到的模板进行保存(导入pickle模块进行保存）
 6. 将参数和结果也进行文件形式保存
 7. 修改分类器评估指标（以普通accuracy为指标)——因为在这个多分类问题中每个类别所占权重一致
-8. **单次读入的数据容量过大，列表维度产生错误**
+8. 数据写入时产生错误(最后会有数据没有写入？），使列表的维度不一致，np.shape()返回不了值——可以使用try except写，防止错误产生
+9. 数据写入操作时会产生遗漏（自动默认填补）
 
 """
 
@@ -88,7 +89,7 @@ def getLBP_Vector(path, sigma, radius, split):
             cur_hist, cur_bins = np.histogram(cur_lbpmat, bins=max_bins, range=(0, max_bins))
             cur_hist = cur_hist / number  # 归一化转换为概率分布
             lbp_vector.extend(cur_hist.tolist())
-    return lbp_vector,np.shape(lbp_vector)[0]
+    return lbp_vector, np.shape(lbp_vector)[0]
 
 
 # 训练所有图像的LBP，获得训练样本和测试样本数据集和的标签集和,并将其保存在result中
@@ -113,7 +114,7 @@ def trainLBP_Data(path, sigma, radius, split):
         for cur_jpg in os.listdir(cur_path):
             if 'jpg' in cur_jpg:
                 cur_jpg_path = cur_path + cur_jpg
-                cur_lbp_vector,character_num = getLBP_Vector(cur_jpg_path, sigma, radius, split)
+                cur_lbp_vector, character_num = getLBP_Vector(cur_jpg_path, sigma, radius, split)
                 # if i%5==0:  #计数到5，采集一个测试样本
                 #     data_test.append(cur_lbp_vector)
                 #     label_test.append([cur_file,cur_jpg]) #文件夹名称同时为样本类别
@@ -122,11 +123,11 @@ def trainLBP_Data(path, sigma, radius, split):
                 label_training.append([cur_file, cur_jpg])
             else:
                 continue
-        print('文件夹'+cur_file+'处理完毕')
-    csvWrite('./result/data_training4x4.csv', data_training)
-    csvWrite('./result/label_training4x4.csv', label_training)
-    f = open('./result/LBPparameters.txt','a+')    #连续写入
-    f.write('sigma:%f radius:%f split:%f character_num:%d' %(sigma,radius,split,character_num)+'\r\n')
+        print('文件夹' + cur_file + '处理完毕')
+    csvWrite('./result/data_training' + str(split) + '.csv', data_training)
+    csvWrite('./result/label_training' + str(split) + '.csv', label_training)
+    f = open('./result/LBPparameters.txt', 'a+')  # 连续写入
+    f.write('sigma:%f radius:%f split:%f character_num:%d' % (sigma, radius, split, character_num) + '\r\n')
     f.close()
 
 
@@ -163,23 +164,35 @@ def string2int(labelstring):
 
 
 # 将二维字符串型数组转换为浮点型
-# 输入：二维字符串数组:datastr
+# 输入：二维字符串数组:datastr，检测维度大时候shape为什么会出错:split
 # 输出：浮点数组:datafloat
-def str2float(datastr):
-    print(np.shape(datastr))
-    m, n = np.shape(datastr)
+def str2float(datastr, split):
+    m = 5640
+    if split == 7:  # 针对7的特殊情况
+        n = 3234
+    elif split == 6:
+        n = 2376
+    elif split == 5:
+        n = 1650
+    elif split == 4:
+        n = 1056
     datafloat = np.zeros((m, n))
     for i in range(m):
         for j in range(n):
-            datafloat[i][j] = float(datastr[i][j])  # 数组遍历实现转换
+            try:
+                datafloat[i][j] = float(datastr[i][j].rstrip())  # 数组遍历实现转换
+            except:
+                print('为0位置在于%d行%d列' % (i + 1, j + 1))
+                datafloat[i][j] = 0.0
     return datafloat
 
 
 # 使用sklearn进行支持向量机的学习和测试
-# 输入：数据集路径:path,内核选取：kernal, 惩罚系数:C，核函数系数:gamma
+# 输入：数据集路径:path,内核选取：kernal, 惩罚系数:C，核函数系数:gamma,读取的文件名字:split
 # 输出：错误率:wrongrate,分类数量:class_num
-def sklearnPLB(path, kernal, C, gamma):
+def sklearnPLB(path, kernal, C, gamma, split):
     """
+    占时免去保存作用
     先读取CSV文件,之后使用sklearn进行数据分类
     :param path: 数据集路径
     :param kernal: 内核选取
@@ -190,7 +203,7 @@ def sklearnPLB(path, kernal, C, gamma):
     sampledatastr = []
     samplelabelstr = []
     # 读取训练数据集数据
-    f = open(path + 'data_training4x4.csv', 'r')
+    f = open(path + 'data_training' + str(split) + '.csv', 'r')
     csv_read = csv.reader(f)
     # numi = 0
     for i in csv_read:
@@ -200,7 +213,7 @@ def sklearnPLB(path, kernal, C, gamma):
         #     break
     f.close()
     # 读取训练数据集样本数据
-    f2 = open(path + 'label_training4x4.csv', 'r')
+    f2 = open(path + 'label_training' + str(split) + '.csv', 'r')
     csv_read2 = csv.reader(f2)
     # numj = 0
     for j in csv_read2:
@@ -211,7 +224,7 @@ def sklearnPLB(path, kernal, C, gamma):
     f2.close()
     # 将样本集转换为数字,将数据集转换为浮点型
     samplelabel, class_num = string2int(samplelabelstr)
-    sampledataf = str2float(sampledatastr)
+    sampledataf = str2float(sampledatastr, split)
     print('数据读取完成')
     # 样本集分割
     X_train, X_test, y_train, y_test = model_selection.train_test_split(sampledataf, samplelabel, test_size=0.2,
@@ -225,29 +238,37 @@ def sklearnPLB(path, kernal, C, gamma):
     # 进行训练
     print('进入训练')
     clf = model.fit(X_train, y_train)
-    job.dump(clf,'./model/train_model.m')   #将模板进行保存
-    accuracy = clf.score(X_test, y_test)
-    print(accuracy)
-    return accuracy, class_num
+    # job.dump(clf,'./model/train_model.m')   #将模板进行保存
+    test_accuracy = clf.score(X_test, y_test)
+    train_accuracy = clf.score(X_train, y_train)
+    print(test_accuracy)
+    print(train_accuracy)
+    return test_accuracy, train_accuracy, class_num
 
 
 if __name__ == '__main__':
     starttime = time.time()
     # 定义LBP特征参数
-    path = 'D:/MachineLearning_DataSet/DTD_DescrubableTextures/dtd/images/' #训练集路径
+    path = 'D:/MachineLearning_DataSet/DTD_DescrubableTextures/dtd/images/'  # 训练集路径
     # path = './temp/'
     sigma = 0.8
     radius = 8
-    split = 4
-    # 定义SVM特征参数
-    C = 150
-    gamma = 1.2 #RBF系数
-    # trainLBP_Data(path, sigma, radius, split)
-    accuracy,class_num = sklearnPLB('./result/', kernal='rbf', C=C, gamma=gamma)
-    endtime = time.time()
-    dtime = endtime - starttime
-    f = open('./result/SVMparameters.txt','a+')    #连续写入
-    f.write('C:%f gamma:%f' %(C,gamma)+'\n')
-    f.write('Result: Accuracy:%f, class_num:%f, RunTime:%.8s'%(accuracy,class_num,dtime)+'\r\n')
-    f.close()
-    print("程序运行时间:%.8s秒" % dtime)
+    for split in range(4, 8):
+        # split = 7
+        # 定义SVM特征参数
+        C = 10
+        gamma = 0.8  # RBF系数
+        # trainLBP_Data(path, sigma, radius, split)
+        testaccuracy, trainaccuracy, class_num = sklearnPLB('./result/', kernal='rbf', C=C, gamma=gamma, split=split)
+        endtime = time.time()
+        dtime = endtime - starttime
+        f = open('./result/SVMparameters3.txt', 'a+')  # 连续写入
+        f.write('训练样本集为:' + str(split) + '\n')
+        f.write('C:%.2f gamma:%.1f' % (C, gamma) + '\n')
+        f.write('Result: testAccuracy:%.4f, trainAccuracy:%.4f,class_num:%d, RunTime:%.8s' % (testaccuracy,
+                                                                                              trainaccuracy,
+                                                                                              class_num,
+                                                                                              dtime) + '\r\n')
+        f.close()
+        print("程序运行时间:%.8s秒" % dtime)
+        print('第%d次读取完成' % (split - 3))
