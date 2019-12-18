@@ -205,22 +205,14 @@ def sklearnPLB(path, kernal, C, gamma, split):
     # 读取训练数据集数据
     f = open(path + 'data_training' + str(split) + '.csv', 'r')
     csv_read = csv.reader(f)
-    # numi = 0
-    for i in csv_read:
+    for i in csv_read:  #每次读出一行数据（返回一个一维列表）
         sampledatastr.append(i)
-        # numi+=1
-        # if numi>300:   #测试是否是因为列表过大
-        #     break
     f.close()
     # 读取训练数据集样本数据
     f2 = open(path + 'label_training' + str(split) + '.csv', 'r')
     csv_read2 = csv.reader(f2)
-    # numj = 0
     for j in csv_read2:
         samplelabelstr.append(j[0])  # 选择第一项写入样本序列中
-        # numj+=1
-        # if numj>300:
-        #     break
     f2.close()
     # 将样本集转换为数字,将数据集转换为浮点型
     samplelabel, class_num = string2int(samplelabelstr)

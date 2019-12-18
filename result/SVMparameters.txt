@@ -11,3 +11,6 @@ C:150.000000 gamma:0.600000
 Result: Accuracy:0.256206, class_num:47.000000, RunTime:314.6590
 C:150.000000 gamma:1.200000
 Result: Accuracy:0.255319, class_num:47.000000, RunTime:312.8577
+训练样本集为:7
+C:150.000000.2 gamma:1.200000.2
+Result: Accuracy:0.182624.4, class_num:47, RunTime:1330.898

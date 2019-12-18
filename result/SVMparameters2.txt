@@ -1,0 +1,12 @@
+训练样本集为:4
+C:75.00 gamma:0.8
+Result: testAccuracy:0.2544, trainAccuracy:0.6711,class_num:47, RunTime:1381.563
+训练样本集为:5
+C:75.00 gamma:0.8
+Result: testAccuracy:0.2500, trainAccuracy:0.8697,class_num:47, RunTime:3656.248
+训练样本集为:6
+C:75.00 gamma:0.8
+Result: testAccuracy:0.2083, trainAccuracy:0.9696,class_num:47, RunTime:7257.267
+训练样本集为:7
+C:75.00 gamma:0.8
+Result: testAccuracy:0.1950, trainAccuracy:0.9982,class_num:47, RunTime:12695.63
